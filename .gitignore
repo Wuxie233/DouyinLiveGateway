@@ -1,0 +1,18 @@
+# Native build output
+build/
+artifacts/
+out/
+
+# IDE and platform noise
+.vs/
+.vscode/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+CTestTestfile.cmake
+
+# Runtime diagnostics and captured inputs
+*.log
+*.previous
+*.dump
