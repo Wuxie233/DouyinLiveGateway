@@ -357,7 +357,12 @@ bool NamedPipeServer::Start()
                 ? TRUE : (GetLastError() == ERROR_PIPE_CONNECTED);
             if (!connected || state_->stop_requested) {
                 CloseHandle(pipe);
-                state_->listening_handle = INVALID_HANDLE_VALUE;
+                {
+                    std::lock_guard<std::mutex> lock(mutex_);
+                    if (state_->listening_handle == pipe) {
+                        state_->listening_handle = INVALID_HANDLE_VALUE;
+                    }
+                }
                 continue;
             }
             {
@@ -396,7 +401,12 @@ bool NamedPipeServer::Start()
                 close();
                 });
             }
-            state_->listening_handle = INVALID_HANDLE_VALUE;
+            {
+                std::lock_guard<std::mutex> lock(mutex_);
+                if (state_->listening_handle == pipe) {
+                    state_->listening_handle = INVALID_HANDLE_VALUE;
+                }
+            }
         }
         state_->running = false;
     });
@@ -414,9 +424,8 @@ void NamedPipeServer::Stop()
     {
         std::lock_guard<std::mutex> lock(mutex_);
         state_->stop_requested = true;
-        if (state_->listening_handle != INVALID_HANDLE_VALUE) {
-            CloseHandle(state_->listening_handle);
-            state_->listening_handle = INVALID_HANDLE_VALUE;
+        if (state_->accept_thread.joinable()) {
+            CancelSynchronousIo(state_->accept_thread.native_handle());
         }
     }
     hub_.Shutdown();
