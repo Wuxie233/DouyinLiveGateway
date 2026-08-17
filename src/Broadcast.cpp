@@ -5,7 +5,15 @@
 #include <utility>
 
 #ifdef _WIN32
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0600
+#endif
 #include <windows.h>
 #endif
 
@@ -421,19 +429,20 @@ void NamedPipeServer::Stop()
 {
     if (!state_) return;
 #ifdef _WIN32
+    HANDLE listening = INVALID_HANDLE_VALUE;
     {
         std::lock_guard<std::mutex> lock(mutex_);
         state_->stop_requested = true;
-        if (state_->accept_thread.joinable()) {
-            CancelSynchronousIo(state_->accept_thread.native_handle());
-        }
+        listening = state_->listening_handle;
+        state_->listening_handle = INVALID_HANDLE_VALUE;
+    }
+    if (listening != INVALID_HANDLE_VALUE) {
+        CancelIoEx(listening, nullptr);
+        CloseHandle(listening);
     }
     hub_.Shutdown();
     if (state_->accept_thread.joinable()) state_->accept_thread.join();
     std::unique_lock<std::mutex> sessions_lock(state_->sessions_mutex);
-    for (auto& session : state_->sessions) {
-        if (session.joinable()) CancelSynchronousIo(session.native_handle());
-    }
     auto sessions = std::move(state_->sessions);
     sessions_lock.unlock();
     for (auto& session : sessions) if (session.joinable()) session.join();

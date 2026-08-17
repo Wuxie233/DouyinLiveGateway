@@ -21,7 +21,11 @@ endif()
 add_library(douyin_gateway_broadcast STATIC src/Broadcast.cpp)
 target_include_directories(douyin_gateway_broadcast PUBLIC include)
 if(WIN32)
-    target_compile_definitions(douyin_gateway_broadcast PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+    target_compile_definitions(douyin_gateway_broadcast PRIVATE
+        NOMINMAX
+        WIN32_LEAN_AND_MEAN
+        _WIN32_WINNT=0x0601
+        WINVER=0x0601)
 endif()
 
 include(CTest)
@@ -37,5 +41,12 @@ endif()
 if(WIN32)
     add_executable(DouyinLiveGateway src/GatewayMain.cpp)
     target_link_libraries(DouyinLiveGateway PRIVATE douyin_gateway_core douyin_gateway_broadcast)
-    target_compile_definitions(DouyinLiveGateway PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
+    target_compile_definitions(DouyinLiveGateway PRIVATE
+        UNICODE
+        _UNICODE
+        WIN32_LEAN_AND_MEAN
+        NOMINMAX
+        _WIN32_WINNT=0x0601
+        WINVER=0x0601)
+    target_link_options(DouyinLiveGateway PRIVATE -static)
 endif()

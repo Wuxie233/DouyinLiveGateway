@@ -1,5 +1,6 @@
 # Native build output
 build/
+build-win64/
 artifacts/
 out/
 
