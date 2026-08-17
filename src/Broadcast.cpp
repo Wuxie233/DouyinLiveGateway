@@ -397,8 +397,10 @@ bool NamedPipeServer::Start()
                     return;
                 }
                 std::string frame;
-                while (!state_->stop_requested && subscriber->WaitPop(frame,
-                           std::chrono::milliseconds(250))) {
+                while (!state_->stop_requested && !subscriber->IsClosed()) {
+                    if (!subscriber->WaitPop(frame, std::chrono::milliseconds(250))) {
+                        continue;
+                    }
                     if (!WriteLine(pipe, frame)) {
                         hub_.Unsubscribe(subscriber->Id(), "client_disconnect");
                         close();

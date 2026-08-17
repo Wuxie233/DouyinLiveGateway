@@ -84,6 +84,7 @@ void DisconnectReconnectAndShutdown()
     assert(replacement && replacement->Id() == "sub-2");
     hub.Publish("event");
     std::string frame;
+    assert(!old->WaitPop(frame, std::chrono::milliseconds(5)));
     assert(replacement->WaitPop(frame, std::chrono::milliseconds(1)) && frame == "event");
     hub.Shutdown();
     assert(replacement->IsClosed() && replacement->CloseReason() == "shutdown");
