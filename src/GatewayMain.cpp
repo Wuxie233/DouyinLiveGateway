@@ -33,12 +33,14 @@ int main(int argc, char** argv) {
         std::cerr << "failed to start named-pipe broadcast: " << server.Error() << '\n';
         return 1;
     }
+    std::cout << "named pipe ready: \\\\.\\pipe\\DouyinLiveGateway.v1\n";
 #else
     std::cerr << "DouyinLiveGateway requires Windows x64 for named-pipe broadcast\n";
     return 1;
 #endif
     bool session_started = false;
     std::unique_ptr<douyin::LogTailer> tailer;
+    auto last_wait = std::chrono::steady_clock::now() - std::chrono::seconds(10);
     for (;;) {
         std::vector<std::string> callbacks;
         bool rotated = false;
@@ -48,9 +50,15 @@ int main(int argc, char** argv) {
                 ? douyin::DiscoverWebcastMateLog()
                 : std::filesystem::path(options.log_path);
             if (source.empty()) {
+                const auto now = std::chrono::steady_clock::now();
+                if (now - last_wait >= std::chrono::seconds(5)) {
+                    std::cout << "waiting for a webcast_mate log that contains PipeCapture OPEN_LIVE_DATA\n";
+                    last_wait = now;
+                }
                 std::this_thread::sleep_for(std::chrono::seconds(1));
                 continue;
             }
+            std::cout << "watching " << source.u8string() << '\n';
             tailer = std::make_unique<douyin::LogTailer>(std::move(source));
         }
         if (!tailer->Poll(callbacks, rotated, disconnected)) {
@@ -70,6 +78,7 @@ int main(int argc, char** argv) {
                         if (!session_started) {
                             hub.Publish(douyin::SessionStartLine(session));
                             session_started = true;
+                            std::cout << "session started\n";
                         }
                         hub.Publish(line);
                     }
